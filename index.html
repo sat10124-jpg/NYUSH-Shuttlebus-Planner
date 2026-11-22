@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#57068c">
+  <meta name="description" content="A simple shuttle planner for your NYU Shanghai class schedule.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <title>Shuttle — NYU Shanghai</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="Shuttle home"><span class="brand-mark">S</span><span>SHUTTLE<span class="brand-light"> / NYU SHANGHAI</span></span></a>
+    <button class="icon-button" id="installButton" hidden aria-label="Install app">＋</button>
+  </header>
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-copy"><p class="eyebrow">YOUR DAY, IN MOTION</p><h1>Make the<br><em>next bus.</em></h1><p class="hero-note">Your classes and shuttle times, together at last.</p></div>
+      <div class="hero-orb" aria-hidden="true"><span>↗</span></div>
+    </section>
+
+    <section class="today-section">
+      <div class="section-heading"><div><p class="eyebrow">YOUR NEXT DEPARTURES</p><h2>Upcoming classes</h2></div><span id="todayLabel" class="date-chip"></span></div>
+      <div id="upcoming" class="upcoming-list"></div>
+      <div id="emptyUpcoming" class="empty-state" hidden><span class="empty-icon">↗</span><p>No classes coming up yet.</p><button class="text-button" data-scroll="classes">Add your class schedule →</button></div>
+    </section>
+
+    <section class="notice-row" id="notificationCard">
+      <span class="notice-icon">◉</span><div class="notice-copy"><strong>Departure reminders</strong><span id="notificationStatus">Turn on notifications to get a heads-up before your last bus.</span></div><button class="small-button" id="notifyButton">Enable</button>
+    </section>
+
+    <section class="panel" id="shuttles">
+      <div class="section-heading"><div><p class="eyebrow">THE TIMETABLE</p><h2>Bus departures</h2></div><span class="live-tag"><i></i> YOUR SAVED TIMES</span></div>
+      <div class="tabs" role="tablist" aria-label="Timetable day"><button class="tab active" data-day="weekday" role="tab">Mon–Fri</button><button class="tab" data-day="saturday" role="tab">Saturday</button><button class="tab" data-day="sunday" role="tab">Sunday</button></div>
+      <div class="direction-row"><label for="directionSelect">Direction</label><select id="directionSelect"><option value="dorm-campus">Dorms → Campus</option><option value="campus-dorm">Campus → Dorms</option></select></div>
+      <div id="timetable" class="time-grid"></div>
+      <div class="schedule-edit">
+        <label class="field-label" for="busTimes">Edit departure times <span>Use 24-hour times, separated by commas</span></label>
+        <textarea id="busTimes" rows="2" placeholder="07:30, 08:00, 08:30"></textarea>
+        <button id="saveBusTimes" class="button button-dark">Save these departures</button>
+        <p class="microcopy">Weekday, Saturday and Sunday times are saved separately. Add times for the other direction too if its schedule differs.</p>
+      </div>
+      <div class="upload-box"><div><strong>Have the timetable as a PDF or screenshot?</strong><span>Import visible times, then check and save them.</span></div><label class="upload-button" for="timetableFile">Choose file<input id="timetableFile" type="file" accept="application/pdf,image/*" capture="environment"></label></div>
+      <div id="importStatus" class="import-status" aria-live="polite"></div>
+      <div id="timetablePreview" class="file-preview"></div>
+    </section>
+
+    <section class="panel class-panel" id="classes">
+      <div class="section-heading"><div><p class="eyebrow">YOUR PERSONAL ROUTINE</p><h2>Class schedule</h2></div></div>
+      <p class="panel-intro">Add class start times and the shuttle direction you’ll take. We’ll show the three latest departures before class.</p>
+      <form id="classForm" class="class-form">
+        <label>Class name<input id="className" placeholder="e.g. Economics" maxlength="48" required></label>
+        <label>Day<select id="classDay"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></label>
+        <label>Starts at<input id="classTime" type="time" required></label>
+        <label>Bus from<select id="classDirection"><option value="dorm-campus">Dorms → Campus</option><option value="campus-dorm">Campus → Dorms</option></select></label>
+        <button class="button button-purple" type="submit">＋ Add class</button>
+      </form>
+      <div class="upload-box class-upload"><div><strong>Import a class schedule</strong><span>Upload an image or PDF; review the detected times and add classes above.</span></div><label class="upload-button" for="classFile">Choose file<input id="classFile" type="file" accept="application/pdf,image/*" capture="environment"></label></div>
+      <div id="classImportStatus" class="import-status" aria-live="polite"></div>
+      <div id="classPreview" class="file-preview"></div>
+      <div id="classList" class="class-list"></div>
+    </section>
+
+    <section class="footer-note"><span>ⓘ</span><p><strong>A note about this first version</strong><br>For reminders, keep the app open in a browser tab. Phone notifications while it’s fully closed need a hosted push service, which is not configured here. Your saved schedules stay on this device.</p></section>
+  </main>
+  <nav class="bottom-nav" aria-label="Main navigation"><a href="#home" class="nav-item active"><span>⌂</span>Today</a><a href="#shuttles" class="nav-item"><span>↗</span>Shuttles</a><a href="#classes" class="nav-item"><span>▦</span>Classes</a></nav>
+  <script src="app.js"></script>
+</body>
+</html>

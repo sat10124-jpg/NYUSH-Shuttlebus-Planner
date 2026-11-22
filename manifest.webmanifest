@@ -1,0 +1,10 @@
+{
+  "name": "NYU Shanghai Shuttle Planner",
+  "short_name": "Shuttle",
+  "description": "Plan shuttle departures around your classes.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#57068c",
+  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
