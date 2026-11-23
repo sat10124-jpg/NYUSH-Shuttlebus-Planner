@@ -57,8 +57,8 @@ Transcribed from the one-page schedule image supplied in chat, effective Monday 
 
 ## Native alert build (in progress)
 
-The `native-alerts` branch adds a Capacitor project setup and a GitHub Actions build for iOS Simulator and Android debug builds. In the native app, enabling notifications schedules the upcoming class departure reminders on the phone, so they can fire while the app is closed. The web link does not gain this behavior from those branch changes.
+The `native-alerts` branch adds a Capacitor project setup, on-device scheduled reminders, and a GitHub Actions build for iOS Simulator and Android debug builds. Notifications are scheduled at each class's **Leave by** time. The optional Qiantan campus geofence is configured as a 150 m region; when enabled, it gates campus-to-dorm reminders. Location is not uploaded. The web link does not gain these native features.
 
-The opt-in Qiantan campus geofence is not implemented yet. Do not treat the native branch as a finished location-aware release. The planned location check will use a 150 m region and remain on the device.
+The native branch still needs its hosted builds and real-phone permission/geofence checks before it is ready to share as a finished location-aware app.
 
 The repository's **Actions** tab can run the native build workflow. No Node.js or Xcode install is needed on the laptop for that hosted build. To build locally, install Node.js and Xcode for iOS; Android local builds also require Android Studio and its SDK.
