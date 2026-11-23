@@ -5,7 +5,15 @@ const DIRECTIONS = {
 };
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SHORT_DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-const DEFAULT = { buses: { weekday: {'dorm-campus': [], 'campus-dorm': []}, saturday: {'dorm-campus': [], 'campus-dorm': []}, sunday: {'dorm-campus': [], 'campus-dorm': []} }, classes: [], reminders: true };
+const WEEKDAY_TO_CAMPUS = ['07:30','07:45','08:00','08:30','08:45','09:00','09:15','09:30','10:00','10:30','10:45','11:00','11:30','12:15','13:00','13:45','15:15','16:45','17:30','18:15','19:30'];
+const WEEKDAY_TO_DORMS = ['09:45','11:30','12:45','13:30','14:15','15:00','15:45','16:15','16:45','17:00','17:15','17:45','18:15','18:45','19:15','19:45','20:15','20:45','21:00','21:15','21:30','21:45','22:00','22:15','22:30','22:45','23:00'];
+const WEEKEND_TO_CAMPUS = ['09:00','09:30','10:30','11:30','12:45','14:00','16:30'];
+const WEEKEND_TO_DORMS = ['11:00','16:00','17:45','18:45','19:45','20:15','20:45'];
+const DEFAULT = { buses: {
+  weekday: {'dorm-campus': WEEKDAY_TO_CAMPUS, 'campus-dorm': WEEKDAY_TO_DORMS},
+  saturday: {'dorm-campus': WEEKEND_TO_CAMPUS, 'campus-dorm': WEEKEND_TO_DORMS},
+  sunday: {'dorm-campus': WEEKEND_TO_CAMPUS, 'campus-dorm': WEEKEND_TO_DORMS}
+}, busesConfirmed: false, classes: [], reminders: true };
 let data = loadData();
 let selectedDay = 'weekday';
 let deferredInstall = null;
@@ -13,7 +21,17 @@ let deferredInstall = null;
 function loadData() {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY) || 'null');
-    return stored ? {...structuredClone(DEFAULT), ...stored, buses: {...DEFAULT.buses, ...(stored.buses || {})}} : structuredClone(DEFAULT);
+    if (!stored) return structuredClone(DEFAULT);
+    const merged = {...structuredClone(DEFAULT), ...stored, buses: {}};
+    for (const day of ['weekday','saturday','sunday']) {
+      merged.buses[day] = {...DEFAULT.buses[day], ...(stored.buses?.[day] || {})};
+      for (const direction of Object.keys(DIRECTIONS)) {
+        const saved = stored.buses?.[day]?.[direction];
+        if (!stored.busesConfirmed && (!Array.isArray(saved) || saved.length === 0)) merged.buses[day][direction] = DEFAULT.buses[day][direction];
+      }
+    }
+    merged.busesConfirmed = Boolean(stored.busesConfirmed);
+    return merged;
   } catch { return structuredClone(DEFAULT); }
 }
 function saveData() { localStorage.setItem(KEY, JSON.stringify(data)); render(); }
@@ -99,6 +117,7 @@ document.getElementById('saveBusTimes').addEventListener('click', () => {
   const times = parseTimes(document.getElementById('busTimes').value);
   data.buses[selectedDay] ||= {'dorm-campus':[], 'campus-dorm':[]};
   data.buses[selectedDay][document.getElementById('directionSelect').value] = times;
+  data.busesConfirmed = true;
   saveData();
   document.getElementById('importStatus').textContent = `${times.length} departure${times.length===1?'':'s'} saved for ${selectedDay} · ${DIRECTIONS[document.getElementById('directionSelect').value]}.`;
 });
