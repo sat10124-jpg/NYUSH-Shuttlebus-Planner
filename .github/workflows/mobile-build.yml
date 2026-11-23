@@ -2,8 +2,6 @@ name: Native mobile build
 
 on:
   workflow_dispatch:
-  push:
-    branches: [native-alerts]
 
 permissions:
   contents: read
@@ -20,6 +18,7 @@ jobs:
       - run: npm run build
       - run: npx cap add ios
       - run: npx cap sync ios
+      - run: python3 scripts/prepare_native.py
       - name: Build iOS simulator app
         run: xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
       - uses: actions/upload-artifact@v4
@@ -42,6 +41,7 @@ jobs:
       - run: npm run build
       - run: npx cap add android
       - run: npx cap sync android
+      - run: python3 scripts/prepare_native.py
       - run: cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
