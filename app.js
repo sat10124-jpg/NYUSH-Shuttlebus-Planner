@@ -17,6 +17,13 @@ const DEFAULT = { buses: {
 let data = loadData();
 let selectedDay = 'weekday';
 let deferredInstall = null;
+let localNotificationModule;
+let nativePermissionGranted = false;
+function isNativeApp() { return Boolean(window.Capacitor?.isNativePlatform?.()); }
+async function getLocalNotifications() {
+  if (!localNotificationModule) localNotificationModule = import('@capacitor/local-notifications').then(module => module.LocalNotifications);
+  return localNotificationModule;
+}
 
 function loadData() {
   try {
@@ -29,7 +36,7 @@ function loadData() {
     return merged;
   } catch { return structuredClone(DEFAULT); }
 }
-function saveData() { localStorage.setItem(KEY, JSON.stringify({classes:data.classes, reminders:data.reminders, walkMinutes:data.walkMinutes})); render(); }
+function saveData() { localStorage.setItem(KEY, JSON.stringify({classes:data.classes, reminders:data.reminders, walkMinutes:data.walkMinutes})); render(); void syncNativeReminders(); }
 function esc(value) { return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function minutes(value) { const [h,m] = value.split(':').map(Number); return h * 60 + m; }
 function formatDay(date) { return DAY_NAMES[date.getDay()]; }
@@ -50,6 +57,45 @@ function upcomingClasses(limit=12) {
 function subtractMinutes(time, amount) {
   const total = (minutes(time) - amount + 1440) % 1440;
   return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
+}
+function nextNativeReminders(daysAhead=14) {
+  const now = new Date();
+  const entries = [];
+  for (let offset=0; offset<daysAhead; offset++) {
+    const dayDate = new Date(now.getFullYear(),now.getMonth(),now.getDate()+offset);
+    for (const cls of data.classes) {
+      if (!(cls.days || []).includes(dayDate.getDay())) continue;
+      const classDate = new Date(dayDate.getFullYear(),dayDate.getMonth(),dayDate.getDate(),Number(cls.time.slice(0,2)),Number(cls.time.slice(3)),0,0);
+      if (classDate <= now) continue;
+      const buses = (data.buses[daySchedule(dayDate.getDay())]?.[cls.direction] || []).slice().sort((a,b)=>minutes(a)-minutes(b));
+      const last = buses.filter(time => minutes(time) < minutes(cls.time)).slice(-1)[0];
+      if (!last) continue;
+      const at = new Date(dayDate.getFullYear(),dayDate.getMonth(),dayDate.getDate(),Number(last.slice(0,2)),Number(last.slice(3)),0,0);
+      at.setMinutes(at.getMinutes()-data.walkMinutes);
+      if (at <= now) continue;
+      const key = `${cls.id}.${dayDate.getFullYear()}-${dayDate.getMonth()+1}-${dayDate.getDate()}.${last}`;
+      const id = [...key].reduce((hash,char)=>(hash*31+char.charCodeAt(0))>>>0,7) % 2147483000 + 1000;
+      entries.push({id, title:`Leave by ${formatClock(at)} for the ${last} shuttle`, body:`${cls.name} starts at ${cls.time}. This is the last bus before class.`, schedule:{at, allowWhileIdle:true}, sound:null, extra:{classId:cls.id, bus:last}});
+    }
+  }
+  return entries.sort((a,b)=>a.schedule.at-b.schedule.at).slice(0,60);
+}
+function formatClock(date) { return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`; }
+async function syncNativeReminders() {
+  if (!isNativeApp()) return;
+  try {
+    const notifications = await getLocalNotifications();
+    const previousIds = JSON.parse(localStorage.getItem('nyushuttle.nativeReminderIds') || '[]');
+    if (previousIds.length) await notifications.cancel({notifications:previousIds.map(id=>({id}))});
+    if (!data.reminders) { localStorage.removeItem('nyushuttle.nativeReminderIds'); return; }
+    const permission = await notifications.checkPermissions();
+    nativePermissionGranted = permission.display === 'granted';
+    render();
+    if (permission.display !== 'granted') return;
+    const upcoming = nextNativeReminders();
+    if (upcoming.length) await notifications.schedule({notifications:upcoming});
+    localStorage.setItem('nyushuttle.nativeReminderIds',JSON.stringify(upcoming.map(item=>item.id)));
+  } catch (error) { console.warn('Could not sync on-device bus reminders.',error); }
 }
 function renderUpcoming() {
   const items = upcomingClasses(3);
@@ -86,12 +132,14 @@ function render() {
   document.getElementById('walkMinutes').value = String(data.walkMinutes);
   const status = document.getElementById('notificationStatus');
   const button = document.getElementById('notifyButton');
-  if (!('Notification' in window)) { status.textContent = 'This browser does not support notifications.'; button.hidden = true; }
+  if (isNativeApp()) { status.textContent = nativePermissionGranted && data.reminders ? 'Bus reminders are scheduled on this phone.' : 'Enable phone notifications to schedule bus reminders.'; button.textContent = nativePermissionGranted && data.reminders ? 'On' : 'Enable'; button.disabled = nativePermissionGranted && data.reminders; }
+  else if (!('Notification' in window)) { status.textContent = 'This browser does not support notifications.'; button.hidden = true; }
   else if (Notification.permission === 'granted') { status.textContent = 'Reminders are on while this app is open.'; button.textContent = 'On'; button.disabled = true; }
   else if (Notification.permission === 'denied') { status.textContent = 'Notifications are blocked in browser settings.'; button.textContent = 'Blocked'; button.disabled = true; }
   else { status.textContent = `Get a heads-up ${data.walkMinutes} minutes before your last bus.`; button.textContent = 'Enable'; button.disabled = false; }
 }
 function checkReminders() {
+  if (isNativeApp()) return;
   if (!('Notification' in window) || Notification.permission !== 'granted' || !data.reminders) return;
   const now = new Date();
   const stamp = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
@@ -127,6 +175,15 @@ document.querySelectorAll('[data-weekdays]').forEach(button => button.addEventLi
 }));
 document.querySelectorAll('input[name="classDays"]').forEach(input => input.addEventListener('change', () => { document.getElementById('dayError').textContent = ''; }));
 document.getElementById('notifyButton').addEventListener('click', async () => {
+  if (isNativeApp()) {
+    try {
+      const notifications = await getLocalNotifications();
+      const permission = await notifications.requestPermissions();
+      data.reminders = permission.display === 'granted';
+      saveData();
+    } catch (error) { console.warn('Could not enable phone reminders.',error); }
+    return;
+  }
   if (!('Notification' in window)) return;
   const permission = await Notification.requestPermission();
   if (permission === 'granted') { data.reminders = true; saveData(); }
@@ -181,4 +238,4 @@ for (const [inputId, previewId] of [['classFile','classPreview']]) {
 window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); deferredInstall = event; document.getElementById('installButton').hidden = false; });
 document.getElementById('installButton').addEventListener('click', async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
-render(); setInterval(checkReminders,15000); checkReminders();
+render(); void syncNativeReminders(); setInterval(checkReminders,15000); checkReminders();
