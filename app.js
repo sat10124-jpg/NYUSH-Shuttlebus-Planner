@@ -13,7 +13,7 @@ const DEFAULT = { buses: {
   weekday: {'dorm-campus': WEEKDAY_TO_CAMPUS, 'campus-dorm': WEEKDAY_TO_DORMS},
   saturday: {'dorm-campus': WEEKEND_TO_CAMPUS, 'campus-dorm': WEEKEND_TO_DORMS},
   sunday: {'dorm-campus': WEEKEND_TO_CAMPUS, 'campus-dorm': WEEKEND_TO_DORMS}
-}, busesConfirmed: false, classes: [], reminders: true };
+}, classes: [], reminders: true };
 let data = loadData();
 let selectedDay = 'weekday';
 let deferredInstall = null;
@@ -22,35 +22,30 @@ function loadData() {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!stored) return structuredClone(DEFAULT);
-    const merged = {...structuredClone(DEFAULT), ...stored, buses: {}};
-    for (const day of ['weekday','saturday','sunday']) {
-      merged.buses[day] = {...DEFAULT.buses[day], ...(stored.buses?.[day] || {})};
-      for (const direction of Object.keys(DIRECTIONS)) {
-        const saved = stored.buses?.[day]?.[direction];
-        if (!stored.busesConfirmed && (!Array.isArray(saved) || saved.length === 0)) merged.buses[day][direction] = DEFAULT.buses[day][direction];
-      }
-    }
-    merged.busesConfirmed = Boolean(stored.busesConfirmed);
+    const merged = {...structuredClone(DEFAULT), classes: (stored.classes || []).map(cls => ({
+      ...cls,
+      days: (cls.days || [cls.day]).map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6)
+    }))};
     return merged;
   } catch { return structuredClone(DEFAULT); }
 }
-function saveData() { localStorage.setItem(KEY, JSON.stringify(data)); render(); }
+function saveData() { localStorage.setItem(KEY, JSON.stringify({classes:data.classes, reminders:data.reminders})); render(); }
 function esc(value) { return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function minutes(value) { const [h,m] = value.split(':').map(Number); return h * 60 + m; }
 function formatDay(date) { return DAY_NAMES[date.getDay()]; }
 function daySchedule(day) { return day === 0 ? 'sunday' : day === 6 ? 'saturday' : 'weekday'; }
 function upcomingClasses(limit=12) {
   const now = new Date();
-  return data.classes.map(cls => {
-    let date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    let delta = (Number(cls.day) - date.getDay() + 7) % 7;
+  return data.classes.flatMap(cls => (cls.days || []).map(day => {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const delta = (Number(day) - date.getDay() + 7) % 7;
     date.setDate(date.getDate() + delta);
     const [h,m] = cls.time.split(':').map(Number); date.setHours(h,m,0,0);
     if (date <= now) date.setDate(date.getDate() + 7);
     const buses = (data.buses[daySchedule(date.getDay())]?.[cls.direction] || []).slice().sort((a,b) => minutes(a)-minutes(b));
     const options = buses.filter(t => minutes(t) < minutes(cls.time)).slice(-3).reverse();
-    return {...cls, date, options, last: options[0] || null};
-  }).sort((a,b) => a.date-b.date).slice(0,limit);
+    return {...cls, day:Number(day), date, options, last: options[0] || null};
+  })).sort((a,b) => a.date-b.date).slice(0,limit);
 }
 function renderUpcoming() {
   const items = upcomingClasses(3);
@@ -67,14 +62,18 @@ function renderUpcoming() {
 function renderTimetable() {
   const dir = document.getElementById('directionSelect').value;
   const times = data.buses[selectedDay]?.[dir] || [];
-  document.getElementById('timetable').innerHTML = times.length ? times.map(t => `<span class="time-pill">${esc(t)}</span>`).join('') : '<span class="no-times">No times saved yet. Add the real timetable below.</span>';
-  document.getElementById('busTimes').value = times.join(', ');
+  document.getElementById('timetable').innerHTML = times.map(t => `<span class="time-pill">${esc(t)}</span>`).join('');
 }
 function renderClasses() {
   const list = document.getElementById('classList');
   if (!data.classes.length) { list.innerHTML = '<p class="class-empty">Your classes will appear here after you add them.</p>'; return; }
-  list.innerHTML = data.classes.slice().sort((a,b) => Number(a.day)-Number(b.day) || a.time.localeCompare(b.time)).map(cls => `<div class="class-row"><span class="class-day-box">${SHORT_DAYS[Number(cls.day)]}<br>${esc(cls.time)}</span><div class="class-row-main"><strong>${esc(cls.name)}</strong><span>${esc(DIRECTIONS[cls.direction])}</span></div><button class="class-remove" data-remove="${esc(cls.id)}" aria-label="Remove ${esc(cls.name)}">×</button></div>`).join('');
+  list.innerHTML = data.classes.slice().sort((a,b) => (a.days[0] ?? 0)-(b.days[0] ?? 0) || a.time.localeCompare(b.time)).map(cls => `<div class="class-row"><span class="class-day-box">${classDaysLabel(cls.days)}<br>${esc(cls.time)}</span><div class="class-row-main"><strong>${esc(cls.name)}</strong><span>${esc(DIRECTIONS[cls.direction])}</span></div><button class="class-remove" data-remove="${esc(cls.id)}" aria-label="Remove ${esc(cls.name)}">×</button></div>`).join('');
   list.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', () => { data.classes = data.classes.filter(c => c.id !== btn.dataset.remove); saveData(); }));
+}
+function classDaysLabel(days) {
+  const sorted = [...days].sort((a,b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b));
+  if ([1,2,3,4,5].every(day => sorted.includes(day)) && sorted.length === 5) return 'MON–FRI';
+  return sorted.map(day => SHORT_DAYS[day]).join(', ');
 }
 function render() {
   const now = new Date();
@@ -86,10 +85,6 @@ function render() {
   else if (Notification.permission === 'granted') { status.textContent = 'Reminders are on while this app is open.'; button.textContent = 'On'; button.disabled = true; }
   else if (Notification.permission === 'denied') { status.textContent = 'Notifications are blocked in browser settings.'; button.textContent = 'Blocked'; button.disabled = true; }
   else { status.textContent = 'Get a heads-up 10 minutes before your last bus.'; button.textContent = 'Enable'; button.disabled = false; }
-}
-function parseTimes(raw) {
-  const matches = raw.match(/(?:[01]?\d|2[0-3]):[0-5]\d/g) || [];
-  return [...new Set(matches.map(t => t.padStart(5,'0')))].sort((a,b)=>minutes(a)-minutes(b));
 }
 function checkReminders() {
   if (!('Notification' in window) || Notification.permission !== 'granted' || !data.reminders) return;
@@ -113,19 +108,18 @@ document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', (
   renderTimetable();
 }));
 document.getElementById('directionSelect').addEventListener('change', renderTimetable);
-document.getElementById('saveBusTimes').addEventListener('click', () => {
-  const times = parseTimes(document.getElementById('busTimes').value);
-  data.buses[selectedDay] ||= {'dorm-campus':[], 'campus-dorm':[]};
-  data.buses[selectedDay][document.getElementById('directionSelect').value] = times;
-  data.busesConfirmed = true;
-  saveData();
-  document.getElementById('importStatus').textContent = `${times.length} departure${times.length===1?'':'s'} saved for ${selectedDay} · ${DIRECTIONS[document.getElementById('directionSelect').value]}.`;
-});
 document.getElementById('classForm').addEventListener('submit', e => {
   e.preventDefault();
-  data.classes.push({id:crypto.randomUUID(), name:document.getElementById('className').value.trim(), day:document.getElementById('classDay').value, time:document.getElementById('classTime').value, direction:document.getElementById('classDirection').value});
+  const days = [...document.querySelectorAll('input[name="classDays"]:checked')].map(input => Number(input.value));
+  if (!days.length) { document.getElementById('dayError').textContent = 'Choose at least one day.'; return; }
+  data.classes.push({id:crypto.randomUUID(), name:document.getElementById('className').value.trim(), days, time:document.getElementById('classTime').value, direction:document.getElementById('classDirection').value});
   e.target.reset(); saveData();
 });
+document.querySelectorAll('[data-weekdays]').forEach(button => button.addEventListener('click', () => {
+  document.querySelectorAll('input[name="classDays"]').forEach(input => { input.checked = Number(input.value) >= 1 && Number(input.value) <= 5; });
+  document.getElementById('dayError').textContent = '';
+}));
+document.querySelectorAll('input[name="classDays"]').forEach(input => input.addEventListener('change', () => { document.getElementById('dayError').textContent = ''; }));
 document.getElementById('notifyButton').addEventListener('click', async () => {
   if (!('Notification' in window)) return;
   const permission = await Notification.requestPermission();
@@ -152,13 +146,9 @@ async function readUpload(file, statusNode) {
       const worker = await createWorker('eng');
       const result = await worker.recognize(file); text = result.data.text; await worker.terminate();
     }
-    const times = parseTimes(text);
+    const times = [...new Set((text.match(/(?:[01]?\d|2[0-3]):[0-5]\d/g) || []).map(t => t.padStart(5,'0')))].sort((a,b)=>minutes(a)-minutes(b));
     if (!times.length) { statusNode.textContent = 'No clock times found. Please enter the times manually below.'; return; }
-    if (statusNode.id === 'importStatus') {
-      document.getElementById('busTimes').value = times.join(', ');
-      statusNode.textContent = `Found ${times.length} clock times. Review the list above; only save it if this page and direction match.`;
-      document.getElementById('busTimes').scrollIntoView({behavior:'smooth',block:'center'});
-    } else {
+    if (statusNode.id === 'classImportStatus') {
       const box = document.createElement('div');
       box.className = 'detected-times';
       box.innerHTML = `<span>Detected times · tap one to add it as a class start</span><div>${times.map(t=>`<button type="button" class="time-pill detected" data-time="${t}">${t}</button>`).join('')}</div>`;
@@ -170,9 +160,8 @@ async function readUpload(file, statusNode) {
     statusNode.textContent = 'Could not read that file. Times can still be entered manually.';
   }
 }
-document.getElementById('timetableFile').addEventListener('change', e => readUpload(e.target.files[0],document.getElementById('importStatus')));
 document.getElementById('classFile').addEventListener('change', e => readUpload(e.target.files[0],document.getElementById('classImportStatus')));
-for (const [inputId, previewId] of [['timetableFile','timetablePreview'],['classFile','classPreview']]) {
+for (const [inputId, previewId] of [['classFile','classPreview']]) {
   document.getElementById(inputId).addEventListener('change', e => {
     const file = e.target.files[0], preview = document.getElementById(previewId);
     preview.replaceChildren();
