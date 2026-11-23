@@ -55,10 +55,14 @@ Transcribed from the one-page schedule image supplied in chat, effective Monday 
 - The app has no login or cloud sync. Each person's classes remain in that person's browser and do not transfer automatically between devices.
 - GitHub Pages is public, so anyone with the URL can use the app. The timetable is fixed for this version; future timetable changes should be made by the app maintainer and published to everyone.
 
-## Native alert build (in progress)
+## Native alert build (preview)
 
-The `native-alerts` branch adds a Capacitor project setup, on-device scheduled reminders, and a GitHub Actions build for iOS Simulator and Android debug builds. Notifications are scheduled at each class's **Leave by** time. The optional Qiantan campus geofence is configured as a 150 m region; when enabled, it gates campus-to-dorm reminders. Location is not uploaded. The web link does not gain these native features.
+The `native-alerts` branch adds a Capacitor project setup and on-device reminders scheduled at each class's **Leave by** time. GitHub Actions successfully built an iOS Simulator app and an Android debug APK. These builds prove that the project compiles; they have not been verified on real phones.
 
-The native branch still needs its hosted builds and real-phone permission/geofence checks before it is ready to share as a finished location-aware app.
+The optional Qiantan campus geofence is configured as a 150 m region, and the app code keeps only the inside/outside state on-device; it does not send location to a server. A real-phone test is still needed. In particular, background geofence transitions do not reach the JavaScript listener while the app's WebView is stopped, so campus-to-dorm reminders may not update correctly after the app is fully closed. Treat this as a preview, not a finished location-aware release.
 
-The repository's **Actions** tab can run the native build workflow. No Node.js or Xcode install is needed on the laptop for that hosted build. To build locally, install Node.js and Xcode for iOS; Android local builds also require Android Studio and its SDK.
+The web link does not get the native features. The Android debug APK can be downloaded from the successful workflow run linked below for Android testing. The iOS artifact is a simulator build and cannot be installed on an iPhone.
+
+Successful build: [GitHub Actions run #12](https://github.com/sat10124-jpg/NYUSH-Shuttlebus-Planner/actions/runs/45172175962).
+
+The repository's **Actions** tab runs the native build workflow. No Node.js or Xcode install is needed on the laptop for hosted builds. To build locally, install Node.js and Xcode for iOS; Android local builds also require Android Studio and its SDK.
