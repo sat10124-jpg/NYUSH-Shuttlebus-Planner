@@ -63,6 +63,6 @@ The optional Qiantan campus geofence is configured as a 150 m region, and the ap
 
 The web link does not get the native features. The Android debug APK can be downloaded from the successful workflow run linked below for Android testing. The iOS artifact is a simulator build and cannot be installed on an iPhone.
 
-Successful build: [GitHub Actions run #11](https://github.com/sat10124-jpg/NYUSH-Shuttlebus-Planner/actions/runs/45172175962).
+Successful build: [GitHub Actions run](https://github.com/sat10124-jpg/NYUSH-Shuttlebus-Planner/actions/runs/45172175962).
 
 The repository's **Actions** tab runs the native build workflow. No Node.js or Xcode install is needed on the laptop for hosted builds. To build locally, install Node.js and Xcode for iOS; Android local builds also require Android Studio and its SDK.
