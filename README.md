@@ -54,3 +54,11 @@ Transcribed from the one-page schedule image supplied in chat, effective Monday 
 - GitHub Pages serves the public web app; it does not publish native store apps. A store release would require packaging the web app for iOS and Android, store developer accounts, privacy/support details, and store review. This repository is a usable PWA for a small friend trial now.
 - The app has no login or cloud sync. Each person's classes remain in that person's browser and do not transfer automatically between devices.
 - GitHub Pages is public, so anyone with the URL can use the app. The timetable is fixed for this version; future timetable changes should be made by the app maintainer and published to everyone.
+
+## Native alert build (in progress)
+
+The `native-alerts` branch adds a Capacitor project setup and a GitHub Actions build for iOS Simulator and Android debug builds. In the native app, enabling notifications schedules the upcoming class departure reminders on the phone, so they can fire while the app is closed. The web link does not gain this behavior from those branch changes.
+
+The opt-in Qiantan campus geofence is not implemented yet. Do not treat the native branch as a finished location-aware release. The planned location check will use a 150 m region and remain on the device.
+
+The repository's **Actions** tab can run the native build workflow. No Node.js or Xcode install is needed on the laptop for that hosted build. To build locally, install Node.js and Xcode for iOS; Android local builds also require Android Studio and its SDK.
