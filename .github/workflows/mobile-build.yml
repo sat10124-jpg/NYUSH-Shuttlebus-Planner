@@ -2,6 +2,8 @@ name: Native mobile build
 
 on:
   workflow_dispatch:
+  push:
+    branches: [native-alerts]
 
 permissions:
   contents: read
