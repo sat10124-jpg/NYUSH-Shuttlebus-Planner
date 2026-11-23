@@ -13,7 +13,7 @@ const DEFAULT = { buses: {
   weekday: {'dorm-campus': WEEKDAY_TO_CAMPUS, 'campus-dorm': WEEKDAY_TO_DORMS},
   saturday: {'dorm-campus': WEEKEND_TO_CAMPUS, 'campus-dorm': WEEKEND_TO_DORMS},
   sunday: {'dorm-campus': WEEKEND_TO_CAMPUS, 'campus-dorm': WEEKEND_TO_DORMS}
-}, classes: [], reminders: true };
+}, classes: [], reminders: true, walkMinutes: 10 };
 let data = loadData();
 let selectedDay = 'weekday';
 let deferredInstall = null;
@@ -22,14 +22,14 @@ function loadData() {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (!stored) return structuredClone(DEFAULT);
-    const merged = {...structuredClone(DEFAULT), classes: (stored.classes || []).map(cls => ({
+    const merged = {...structuredClone(DEFAULT), reminders: stored.reminders ?? true, walkMinutes: Number.isInteger(stored.walkMinutes) ? stored.walkMinutes : 10, classes: (stored.classes || []).map(cls => ({
       ...cls,
       days: (cls.days || [cls.day]).map(Number).filter(day => Number.isInteger(day) && day >= 0 && day <= 6)
     }))};
     return merged;
   } catch { return structuredClone(DEFAULT); }
 }
-function saveData() { localStorage.setItem(KEY, JSON.stringify({classes:data.classes, reminders:data.reminders})); render(); }
+function saveData() { localStorage.setItem(KEY, JSON.stringify({classes:data.classes, reminders:data.reminders, walkMinutes:data.walkMinutes})); render(); }
 function esc(value) { return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function minutes(value) { const [h,m] = value.split(':').map(Number); return h * 60 + m; }
 function formatDay(date) { return DAY_NAMES[date.getDay()]; }
@@ -47,6 +47,10 @@ function upcomingClasses(limit=12) {
     return {...cls, day:Number(day), date, options, last: options[0] || null};
   })).sort((a,b) => a.date-b.date).slice(0,limit);
 }
+function subtractMinutes(time, amount) {
+  const total = (minutes(time) - amount + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
+}
 function renderUpcoming() {
   const items = upcomingClasses(3);
   const container = document.getElementById('upcoming');
@@ -55,8 +59,8 @@ function renderUpcoming() {
     const d = item.date;
     const label = d.toDateString() === new Date().toDateString() ? 'TODAY' : `${SHORT_DAYS[d.getDay()]} · ${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
     if (!item.last) return `<article class="ride-card"><div class="ride-day">${label}</div><div class="ride-class">${esc(item.name)} · ${esc(item.time)}</div><div class="ride-empty">No earlier departures saved for ${esc(DIRECTIONS[item.direction])}.</div></article>`;
-    const alternatives = item.options.slice(1).map(t => `<span>${esc(t)}</span>`).join('<span>·</span>');
-    return `<article class="ride-card featured"><div class="ride-top"><span class="ride-day">${label}</span><span class="badge">LAST BUS</span></div><div class="ride-class">${esc(item.name)} · ${esc(item.time)}</div><strong class="bus-time">${esc(item.last)}</strong><div class="ride-bottom"><span>${esc(DIRECTIONS[item.direction])}</span><span class="choices">${alternatives}</span></div></article>`;
+    const otherOptions = item.options.slice(1).map(t => `<span><strong>${esc(t)}</strong> bus · leave ${esc(subtractMinutes(t,data.walkMinutes))}</span>`).join('');
+    return `<article class="ride-card featured"><div class="ride-top"><span class="ride-day">${label}</span><span class="badge">LAST BUS</span></div><div class="ride-class">${esc(item.name)} · class at ${esc(item.time)}</div><div class="ride-times"><div class="time-pair"><span class="time-caption">BUS</span><strong class="bus-time">${esc(item.last)}</strong></div><div class="time-pair leave-pair"><span class="time-caption">LEAVE BY</span><strong>${esc(subtractMinutes(item.last,data.walkMinutes))}</strong></div></div><div class="ride-bottom"><span>${esc(DIRECTIONS[item.direction])}</span><div class="choices">${otherOptions || '<span>No earlier bus options</span>'}</div></div></article>`;
   }).join('');
 }
 function renderTimetable() {
@@ -79,12 +83,13 @@ function render() {
   const now = new Date();
   document.getElementById('todayLabel').textContent = now.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}).toUpperCase();
   renderUpcoming(); renderTimetable(); renderClasses();
+  document.getElementById('walkMinutes').value = String(data.walkMinutes);
   const status = document.getElementById('notificationStatus');
   const button = document.getElementById('notifyButton');
   if (!('Notification' in window)) { status.textContent = 'This browser does not support notifications.'; button.hidden = true; }
   else if (Notification.permission === 'granted') { status.textContent = 'Reminders are on while this app is open.'; button.textContent = 'On'; button.disabled = true; }
   else if (Notification.permission === 'denied') { status.textContent = 'Notifications are blocked in browser settings.'; button.textContent = 'Blocked'; button.disabled = true; }
-  else { status.textContent = 'Get a heads-up 10 minutes before your last bus.'; button.textContent = 'Enable'; button.disabled = false; }
+  else { status.textContent = `Get a heads-up ${data.walkMinutes} minutes before your last bus.`; button.textContent = 'Enable'; button.disabled = false; }
 }
 function checkReminders() {
   if (!('Notification' in window) || Notification.permission !== 'granted' || !data.reminders) return;
@@ -93,10 +98,10 @@ function checkReminders() {
   for (const item of upcomingClasses(10)) {
     if (!item.last || item.date.toDateString() !== now.toDateString()) continue;
     const departure = new Date(now.getFullYear(),now.getMonth(),now.getDate(),Number(item.last.slice(0,2)),Number(item.last.slice(3)),0,0);
-    const remindAt = departure.getTime() - 10*60*1000;
+    const remindAt = departure.getTime() - data.walkMinutes*60*1000;
     const key = `nyushuttle.reminded.${stamp}.${item.id}.${item.last}`;
     if (now.getTime() >= remindAt && now.getTime() < remindAt + 60000 && !localStorage.getItem(key)) {
-      new Notification(`Time to head to the ${item.last} shuttle`, {body:`${item.name} starts at ${item.time}. This is the last saved bus before class.`, icon:new URL('icon.svg', location.href).href, tag:key});
+      new Notification(`Leave now for the ${item.last} shuttle`, {body:`${item.name} starts at ${item.time}. Your walk-to-stop buffer is ${data.walkMinutes} minutes.`, icon:new URL('icon.svg', location.href).href, tag:key});
       localStorage.setItem(key,'1');
     }
   }
@@ -108,6 +113,7 @@ document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', (
   renderTimetable();
 }));
 document.getElementById('directionSelect').addEventListener('change', renderTimetable);
+document.getElementById('walkMinutes').addEventListener('change', e => { data.walkMinutes = Number(e.target.value); saveData(); });
 document.getElementById('classForm').addEventListener('submit', e => {
   e.preventDefault();
   const days = [...document.querySelectorAll('input[name="classDays"]:checked')].map(input => Number(input.value));
