@@ -1,8 +1,11 @@
-const CACHE = 'shuttle-static-v2';
+const CACHE = 'shuttle-static-v3';
 const BASE = new URL('.', self.registration.scope);
 const ASSETS = ['', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icon.svg'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(path => new URL(path, BASE).href)))));
-self.addEventListener('activate', event => event.waitUntil(self.clients.claim()));
+self.addEventListener('activate', event => event.waitUntil(Promise.all([
+  self.clients.claim(),
+  caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('shuttle-static-') && key !== CACHE).map(key => caches.delete(key))))
+])));
 self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
   if (event.request.method !== 'GET' || requestUrl.origin !== self.location.origin || !requestUrl.pathname.startsWith(BASE.pathname)) return;
