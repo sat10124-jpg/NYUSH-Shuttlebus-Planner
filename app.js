@@ -60,7 +60,7 @@ function renderUpcoming() {
     const d = item.date;
     const label = d.toDateString() === new Date().toDateString() ? 'TODAY' : `${SHORT_DAYS[d.getDay()]} · ${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`;
     if (!item.last) return `<article class="ride-card"><div class="ride-day">${label}</div><div class="ride-class">${esc(item.name)} · ${esc(item.time)}</div><div class="ride-empty">No earlier departures saved for ${esc(DIRECTIONS[item.direction])}.</div></article>`;
-    const alternatives = item.options.map(t => `<span>${esc(t)}</span>`).join('<span>·</span>');
+    const alternatives = item.options.slice(1).map(t => `<span>${esc(t)}</span>`).join('<span>·</span>');
     return `<article class="ride-card featured"><div class="ride-top"><span class="ride-day">${label}</span><span class="badge">LAST BUS</span></div><div class="ride-class">${esc(item.name)} · ${esc(item.time)}</div><strong class="bus-time">${esc(item.last)}</strong><div class="ride-bottom"><span>${esc(DIRECTIONS[item.direction])}</span><span class="choices">${alternatives}</span></div></article>`;
   }).join('');
 }
