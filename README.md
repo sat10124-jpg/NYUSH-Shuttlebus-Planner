@@ -1,47 +1,55 @@
 # NYU Shanghai Shuttle Planner
 
-A phone-friendly web app for planning shuttle trips around class times. The static app runs on GitHub Pages; `app.py` is an optional local Python server for development. It needs no VPN once published at its public HTTPS URL.
+A phone-friendly shuttle planning web app. The Fall 2026 timetable is built in as fixed data; students cannot edit it. Students can add class times manually, select multiple days for a recurring class, and see the next three earlier buses. Student schedules are stored only in the browser on that device.
 
-## Deploy with GitHub Pages
+## Try it on a phone
 
-1. Create a GitHub repository and add the files in this project to its top level: `index.html`, `app.js`, `styles.css`, `manifest.webmanifest`, `sw.js`, and `icon.svg`. Include this README. `app.py` and `requirements.txt` are only needed for local Python serving.
-2. In that repository, open **Settings → Pages**.
-3. Under **Build and deployment**, select **Deploy from a branch**.
-4. Choose branch **main**, folder **/(root)**, and click **Save**.
-5. Wait for the Pages deployment to finish. The public address is `https://YOUR-GITHUB-NAME.github.io/REPOSITORY-NAME/`.
-6. Open that HTTPS address on a phone. On iPhone, tap **Share → Add to Home Screen**. On Android, use the browser menu and choose **Install app** or **Add to Home screen**.
+Open the GitHub Pages address: `https://sat10124-jpg.github.io/NYUSH-Shuttlebus-Planner/`.
 
-## Student guide
+- iPhone: open the address in Safari, tap **Share**, then **Add to Home Screen**.
+- Android: open the address in Chrome, open the browser menu, then choose **Install app** or **Add to Home screen**.
 
-1. Open the app and select **Bus departures**.
-2. Choose **Mon–Fri**, **Saturday** or **Sunday**, then choose **Dorms → Campus** or **Campus → Dorms**.
-3. The Fall 2026 timetable (effective August 31, 2026) is prefilled for both directions. Review it against the current official schedule. To change any list, enter times in 24-hour format separated by commas and tap **Save these departures**. Saturday and Sunday use the same timetable from the PDF.
-4. In **Class schedule**, add each class name, day, start time and shuttle direction.
-5. The Today screen shows up to the three latest saved buses that depart before each upcoming class. The newest of those is marked **Last bus**.
-6. Tap **Enable** to allow browser notifications. While the app is open, it sends a reminder ten minutes before that last departure.
-7. To enter times from a file, choose a timetable PDF or screenshot. Review extracted times carefully before saving; image/PDF text recognition can misread times. Class schedule imports show detected times to tap, then the student fills in the class details.
+The site is a progressive web app (PWA), so it can be added to a phone's home screen. It is not currently an App Store or Google Play listing. Availability depends on whether the student's network can reach GitHub Pages; a VPN is not required by the app itself, but networks may restrict the host.
 
-### Fall 2026 departures transcribed from the schedule
+## Edit the project yourself
 
-The PDF labels the routes **JY to Campus** and **Campus to JY**. In the app these appear as **Dorms → Campus** and **Campus → Dorms**.
+You do not need to download every file just to use the app. To edit the code, open the repository [NYUSH-Shuttlebus-Planner](https://github.com/sat10124-jpg/NYUSH-Shuttlebus-Planner) and either:
+
+1. Click **Code → Download ZIP**, extract the ZIP, and edit the files in a code editor such as VS Code; or
+2. Edit a file directly on GitHub with the pencil button, then commit the change.
+
+The main app files are `index.html` (page layout), `styles.css` (appearance), and `app.js` (schedule and app behavior). `sw.js` handles offline caching. `manifest.webmanifest` and `icon.svg` provide install details. `app.py` and `requirements.txt` are only for running a local development server. Changes committed to the `main` branch are published by GitHub Pages when its deployment completes. To work on a downloaded copy and publish edits, push/commit those files to the repository's `main` branch.
+
+For local preview, install Python 3 if needed, open Terminal in the project folder, and run:
+
+```sh
+python3 app.py
+```
+
+Then visit `http://localhost:8000` on the computer. The phone can preview that local server only if it is on the same Wi-Fi and the computer allows the connection; the public Pages URL is easier for friends to try.
+
+## Student instructions
+
+1. Open **Class schedule**.
+2. Enter a class name and start time. Tap **Mon–Fri** for a weekday class, or select any combination of individual days, including Saturday or Sunday.
+3. Choose the bus direction and tap **Add class**. Each row can represent one class recurring on all selected days.
+4. The **Today** section shows the next classes and up to three buses before each class. The latest of those is marked **Last bus**.
+5. Tap **Enable** for a reminder ten minutes before the last bus. The app page must remain open for this first version's reminder timer to run.
+
+Schedule upload is optional and best-effort: image recognition can miss or misread times, and it does not reliably understand a timetable's class names and day layout. Use the manual form to enter and verify class details. Uploads and saved class schedules remain on the device.
+
+## Fixed Fall 2026 bus timetable
+
+Transcribed from the one-page schedule image supplied in chat, effective Monday August 31, 2026. The app owner must update this data in `app.js` when the university publishes a new schedule.
 
 | Days | JY / Dorms → Campus | Campus → JY / Dorms |
 |---|---|---|
 | Monday–Friday | 07:30, 07:45, 08:00, 08:30, 08:45, 09:00, 09:15, 09:30, 10:00, 10:30, 10:45, 11:00, 11:30, 12:15, 13:00, 13:45, 15:15, 16:45, 17:30, 18:15, 19:30 | 09:45, 11:30, 12:45, 13:30, 14:15, 15:00, 15:45, 16:15, 16:45, 17:00, 17:15, 17:45, 18:15, 18:45, 19:15, 19:45, 20:15, 20:45, 21:00, 21:15, 21:30, 21:45, 22:00, 22:15, 22:30, 22:45, 23:00 |
 | Saturday–Sunday | 09:00, 09:30, 10:30, 11:30, 12:45, 14:00, 16:30 | 11:00, 16:00, 17:45, 18:45, 19:45, 20:15, 20:45 |
 
-Each student's schedule stays in that browser on that device. No class schedule is uploaded to the repository or server. Clearing browser storage will erase the saved schedule.
+## Current limits and App Store path
 
-## Run locally with Python
-
-```sh
-python3 app.py
-```
-
-Open `http://localhost:8000`. The project has no Python package dependencies. On a phone, local development is only reachable on the same Wi-Fi and browser notification permission generally requires HTTPS or localhost.
-
-## Notification and import limits
-
-The reminder timer runs in the open app page. GitHub Pages cannot wake a fully closed or suspended phone app, so push reminders while closed need a separate always-on push backend and credentials. This project does not include that service.
-
-PDF and image time recognition load PDF.js and Tesseract.js from public CDNs. If those CDNs are unavailable on a network, students can still open the local file preview and type departures or class times manually. Fall 2026 times were transcribed from the one-page schedule image provided in chat. Verify them against NYU Shanghai's current official schedule before relying on the app.
+- Reminders run in the open app page. Notifications while the app is fully closed require a push-notification service that is not configured.
+- GitHub Pages serves the public web app; it does not publish native store apps. A store release would require packaging the web app for iOS and Android, store developer accounts, privacy/support details, and store review. This repository is a usable PWA for a small friend trial now.
+- The app has no login or cloud sync. Each person's classes remain in that person's browser and do not transfer automatically between devices.
+- GitHub Pages is public, so anyone with the URL can use the app. The timetable is fixed for this version; future timetable changes should be made by the app maintainer and published to everyone.
