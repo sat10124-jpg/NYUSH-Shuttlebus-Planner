@@ -31,27 +31,21 @@
     </section>
 
     <section class="panel" id="shuttles">
-      <div class="section-heading"><div><p class="eyebrow">THE TIMETABLE</p><h2>Bus departures</h2></div><span class="live-tag"><i></i> FALL 2026 · EFFECTIVE AUG 31</span></div>
+      <div class="section-heading"><div><p class="eyebrow">THE TIMETABLE</p><h2>Bus departures</h2></div><span class="live-tag">FALL 2026 · EFFECTIVE AUG 31</span></div>
       <div class="tabs" role="tablist" aria-label="Timetable day"><button class="tab active" data-day="weekday" role="tab">Mon–Fri</button><button class="tab" data-day="saturday" role="tab">Saturday</button><button class="tab" data-day="sunday" role="tab">Sunday</button></div>
       <div class="direction-row"><label for="directionSelect">Direction</label><select id="directionSelect"><option value="dorm-campus">Dorms → Campus</option><option value="campus-dorm">Campus → Dorms</option></select></div>
       <div id="timetable" class="time-grid"></div>
-      <div class="schedule-edit">
-        <label class="field-label" for="busTimes">Edit departure times <span>Use 24-hour times, separated by commas</span></label>
-        <textarea id="busTimes" rows="2" placeholder="07:30, 08:00, 08:30"></textarea>
-        <button id="saveBusTimes" class="button button-dark">Save these departures</button>
-        <p class="microcopy">Weekday, Saturday and Sunday times are saved separately. Add times for the other direction too if its schedule differs.</p>
-      </div>
-      <div class="upload-box"><div><strong>Have the timetable as a PDF or screenshot?</strong><span>Import visible times, then check and save them.</span></div><label class="upload-button" for="timetableFile">Choose file<input id="timetableFile" type="file" accept="application/pdf,image/*" capture="environment"></label></div>
-      <div id="importStatus" class="import-status" aria-live="polite"></div>
-      <div id="timetablePreview" class="file-preview"></div>
+      <p class="microcopy">Official timetable times are fixed in this version. When NYU Shanghai publishes a new schedule, the app owner can update them for everyone.</p>
     </section>
 
     <section class="panel class-panel" id="classes">
       <div class="section-heading"><div><p class="eyebrow">YOUR PERSONAL ROUTINE</p><h2>Class schedule</h2></div></div>
-      <p class="panel-intro">Add class start times and the shuttle direction you’ll take. We’ll show the three latest departures before class.</p>
+      <p class="panel-intro">Add class start times and the shuttle direction you’ll take. Select several days for a recurring class; we’ll show the three latest departures before class.</p>
       <form id="classForm" class="class-form">
         <label>Class name<input id="className" placeholder="e.g. Economics" maxlength="48" required></label>
-        <label>Day<select id="classDay"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></label>
+        <fieldset class="day-picker"><legend>Days</legend><div class="day-actions"><button type="button" data-weekdays>Mon–Fri</button></div><div class="day-options">
+          <label><input type="checkbox" name="classDays" value="1"> Mon</label><label><input type="checkbox" name="classDays" value="2"> Tue</label><label><input type="checkbox" name="classDays" value="3"> Wed</label><label><input type="checkbox" name="classDays" value="4"> Thu</label><label><input type="checkbox" name="classDays" value="5"> Fri</label><label><input type="checkbox" name="classDays" value="6"> Sat</label><label><input type="checkbox" name="classDays" value="0"> Sun</label>
+        </div><span id="dayError" class="day-error" aria-live="polite"></span></fieldset>
         <label>Starts at<input id="classTime" type="time" required></label>
         <label>Bus from<select id="classDirection"><option value="dorm-campus">Dorms → Campus</option><option value="campus-dorm">Campus → Dorms</option></select></label>
         <button class="button button-purple" type="submit">＋ Add class</button>
