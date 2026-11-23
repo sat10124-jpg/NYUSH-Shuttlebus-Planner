@@ -30,11 +30,12 @@ Then visit `http://localhost:8000` on the computer. The phone can preview that l
 
 ## Student instructions
 
-1. Open **Class schedule**.
-2. Enter a class name and start time. Tap **Mon–Fri** for a weekday class, or select any combination of individual days, including Saturday or Sunday.
-3. Choose the bus direction and tap **Add class**. Each row can represent one class recurring on all selected days.
-4. The **Today** section shows the next classes and up to three buses before each class. The latest of those is marked **Last bus**.
-5. Tap **Enable** for a reminder ten minutes before the last bus. The app page must remain open for this first version's reminder timer to run.
+1. In **Plan when to leave**, choose the estimated time needed to reach the shuttle stop (10 minutes by default). The app subtracts that buffer from each bus departure to show a **Leave by** time.
+2. Open **Class schedule**.
+3. Enter a class name and start time. Tap **Mon–Fri** for a weekday class, or select any combination of individual days, including Saturday or Sunday.
+4. Choose the bus direction and tap **Add class**. Each row can represent one class recurring on all selected days.
+5. The **Today** section shows the next classes and up to three buses before each class. The latest of those is marked **Last bus**.
+6. Tap **Enable** for a reminder when it is time to leave for the last bus. The app page must remain open for this first version's reminder timer to run.
 
 Schedule upload is optional and best-effort: image recognition can miss or misread times, and it does not reliably understand a timetable's class names and day layout. Use the manual form to enter and verify class details. Uploads and saved class schedules remain on the device.
 
@@ -49,7 +50,7 @@ Transcribed from the one-page schedule image supplied in chat, effective Monday 
 
 ## Current limits and App Store path
 
-- Reminders run in the open app page. Notifications while the app is fully closed require a push-notification service that is not configured.
+- Reminders run in the open app page. Background notifications and location-aware alerts for a closed app are not configured yet.
 - GitHub Pages serves the public web app; it does not publish native store apps. A store release would require packaging the web app for iOS and Android, store developer accounts, privacy/support details, and store review. This repository is a usable PWA for a small friend trial now.
 - The app has no login or cloud sync. Each person's classes remain in that person's browser and do not transfer automatically between devices.
 - GitHub Pages is public, so anyone with the URL can use the app. The timetable is fixed for this version; future timetable changes should be made by the app maintainer and published to everyone.
