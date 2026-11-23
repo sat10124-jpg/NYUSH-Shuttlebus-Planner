@@ -1,4 +1,4 @@
-const CACHE = 'shuttle-static-v3';
+const CACHE = 'shuttle-static-v4';
 const BASE = new URL('.', self.registration.scope);
 const ASSETS = ['', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icon.svg'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(path => new URL(path, BASE).href)))));
