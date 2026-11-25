@@ -97,6 +97,10 @@ async function syncNativeReminders() {
     const upcoming = nextNativeReminders();
     if (upcoming.length) await notifications.schedule({notifications:upcoming});
     localStorage.setItem('nyushuttle.nativeReminderIds',JSON.stringify(upcoming.map(item=>item.id)));
+    const status = document.getElementById('notificationStatus');
+    if (status) status.textContent = upcoming.length
+      ? `Notifications are on. ${upcoming.length} bus reminder${upcoming.length === 1 ? '' : 's'} scheduled on this phone.`
+      : 'Notifications are allowed, but no future class has an eligible bus reminder yet. Add or update a future class.';
   } catch (error) { console.warn('Could not sync on-device bus reminders.',error); }
 }
 async function setCampusGeofence(enabled) {
@@ -252,12 +256,30 @@ document.querySelectorAll('[data-weekdays]').forEach(button => button.addEventLi
 document.querySelectorAll('input[name="classDays"]').forEach(input => input.addEventListener('change', () => { document.getElementById('dayError').textContent = ''; }));
 document.getElementById('notifyButton').addEventListener('click', async () => {
   if (isNativeApp()) {
+    const status = document.getElementById('notificationStatus');
+    const button = document.getElementById('notifyButton');
+    button.disabled = true;
+    status.textContent = 'Requesting notification access…';
     try {
       const notifications = await getLocalNotifications();
-      const permission = await notifications.requestPermissions();
-      data.reminders = permission.display === 'granted';
+      const current = await notifications.checkPermissions();
+      const permission = current.display === 'granted' ? current : await notifications.requestPermissions();
+      nativePermissionGranted = permission.display === 'granted';
+      data.reminders = nativePermissionGranted;
+      if (!nativePermissionGranted) {
+        render();
+        status.textContent = 'Notifications are off. Turn them on in iPhone Settings → Notifications → NYU Shanghai Shuttle Planner, then return here.';
+        return;
+      }
+      status.textContent = 'Notification access granted. Scheduling your bus reminders…';
       saveData();
-    } catch (error) { console.warn('Could not enable phone reminders.',error); }
+    } catch (error) {
+      console.warn('Could not enable phone reminders.',error);
+      render();
+      status.textContent = `Could not enable notifications: ${error?.message || error}. Check the Xcode console for details.`;
+    } finally {
+      button.disabled = false;
+    }
     return;
   }
   if (!('Notification' in window)) return;
