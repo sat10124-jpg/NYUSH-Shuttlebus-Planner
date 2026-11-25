@@ -1,3 +1,5 @@
+import { LocalNotifications } from '@capacitor/local-notifications';
+
 const KEY = 'nyushuttle.v1';
 const DIRECTIONS = {
   'dorm-campus': 'Dorms → Campus',
@@ -18,12 +20,16 @@ const DEFAULT = { buses: {
 let data = loadData();
 let selectedDay = 'weekday';
 let deferredInstall = null;
-let localNotificationModule;
 let nativePermissionGranted = false;
 function isNativeApp() { return Boolean(window.Capacitor?.isNativePlatform?.()); }
-async function getLocalNotifications() {
-  if (!localNotificationModule) localNotificationModule = import('@capacitor/local-notifications').then(module => module.LocalNotifications);
-  return localNotificationModule;
+function withPermissionTimeout(promise, stage, timeoutMs = 30000) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${stage} did not respond within 30 seconds. Check the Xcode console and iOS notification settings.`)), timeoutMs);
+    })
+  ]).finally(() => clearTimeout(timer));
 }
 
 function loadData() {
@@ -86,7 +92,7 @@ function formatClock(date) { return `${String(date.getHours()).padStart(2,'0')}:
 async function syncNativeReminders() {
   if (!isNativeApp()) return;
   try {
-    const notifications = await getLocalNotifications();
+    const notifications = LocalNotifications;
     const previousIds = JSON.parse(localStorage.getItem('nyushuttle.nativeReminderIds') || '[]');
     if (previousIds.length) await notifications.cancel({notifications:previousIds.map(id=>({id}))});
     if (!data.reminders) { localStorage.removeItem('nyushuttle.nativeReminderIds'); return; }
@@ -259,11 +265,15 @@ document.getElementById('notifyButton').addEventListener('click', async () => {
     const status = document.getElementById('notificationStatus');
     const button = document.getElementById('notifyButton');
     button.disabled = true;
-    status.textContent = 'Requesting notification access…';
+    status.textContent = 'Checking notification permission with iOS…';
     try {
       const notifications = await getLocalNotifications();
-      const current = await notifications.checkPermissions();
-      const permission = current.display === 'granted' ? current : await notifications.requestPermissions();
+      const current = await withPermissionTimeout(notifications.checkPermissions(), 'iOS permission check');
+      let permission = current;
+      if (current.display !== 'granted') {
+        status.textContent = 'Waiting for iOS to show the notification permission prompt…';
+        permission = await withPermissionTimeout(notifications.requestPermissions(), 'iOS permission prompt');
+      }
       nativePermissionGranted = permission.display === 'granted';
       data.reminders = nativePermissionGranted;
       if (!nativePermissionGranted) {
