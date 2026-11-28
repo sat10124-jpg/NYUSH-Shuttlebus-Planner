@@ -267,7 +267,7 @@ document.getElementById('notifyButton').addEventListener('click', async () => {
     button.disabled = true;
     status.textContent = 'Checking notification permission with iOS…';
     try {
-      const notifications = await getLocalNotifications();
+      const notifications = LocalNotifications;
       const current = await withPermissionTimeout(notifications.checkPermissions(), 'iOS permission check');
       let permission = current;
       if (current.display !== 'granted') {
